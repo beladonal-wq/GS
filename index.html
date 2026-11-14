@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#F8A020">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Carteirinha USP">
+<title>Carteirinha USP</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.png">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;overflow:hidden}
+  .bg{position:fixed;inset:0;background:radial-gradient(ellipse at 20% 20%,#8B4000 0%,transparent 55%),radial-gradient(ellipse at 80% 80%,#C06000 0%,transparent 55%),#1a0d00;z-index:0}
+  .container{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px 16px;width:100%;max-width:400px}
+  .title{color:#F8A020;font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:.8}
+  .card-frame{width:100%;border-radius:20px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.7),0 0 0 2px rgba(248,160,32,.3);animation:cardIn .7s cubic-bezier(.22,.68,0,1.2) forwards;opacity:0}
+  @keyframes cardIn{from{opacity:0;transform:translateY(30px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+  .card-frame img{width:100%;height:auto;display:block}
+  .hint{color:rgba(248,160,32,.6);font-size:11px;letter-spacing:1px;text-align:center;animation:pulse 2.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+  #ios-banner{position:fixed;bottom:0;left:0;right:0;background:#1E0800;border-top:2px solid #D47800;padding:16px 20px 36px;z-index:100;text-align:center;transform:translateY(100%);transition:transform .4s cubic-bezier(.22,.68,0,1.2)}
+  #ios-banner.show{transform:translateY(0)}
+  #ios-banner h3{color:#F8A020;font-size:14px;margin-bottom:8px}
+  #ios-banner p{color:#ffd89e;font-size:13px;line-height:1.6}
+  #ios-banner .close{position:absolute;top:12px;right:16px;background:none;border:none;color:#888;font-size:22px;cursor:pointer}
+  #android-banner{position:fixed;bottom:0;left:0;right:0;background:#1E0800;border-top:2px solid #D47800;padding:14px 20px;display:flex;align-items:center;gap:12px;z-index:100;transform:translateY(100%);transition:transform .4s cubic-bezier(.22,.68,0,1.2)}
+  #android-banner.show{transform:translateY(0)}
+  #android-banner p{flex:1;color:#ffd89e;font-size:13px;line-height:1.4}
+  #android-banner p strong{color:#fff;display:block;font-size:14px}
+  #android-banner .btn-i{background:#F8A020;color:#1E0800;border:none;border-radius:8px;padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+  #android-banner .btn-c{background:none;border:none;color:#888;font-size:22px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="container">
+  <div class="title">Carteirinha USP</div>
+  <div class="card-frame">
+    <img src="geise_ecard.jpeg" alt="Carteirinha USP">
+  </div>
+  <div class="hint" id="hint-text"></div>
+</div>
+<div id="ios-banner">
+  <button class="close" onclick="dismissBanner('ios')">×</button>
+  <h3>📲 Instalar no iPhone / iPad</h3>
+  <p>Toque em <strong>Compartilhar</strong> <span style="font-size:17px">⬆️</span> na barra do Safari<br>e depois em <strong>"Adicionar à Tela de Início"</strong></p>
+</div>
+<div id="android-banner">
+  <p><strong>📲 Instalar Carteirinha USP</strong>Acesse direto da tela inicial, mesmo offline</p>
+  <button class="btn-i" id="btn-install">Instalar</button>
+  <button class="btn-c" onclick="dismissBanner('android')">×</button>
+</div>
+<script>
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const dismissed = localStorage.getItem('pwa_dismissed');
+  if (isStandalone) {
+    document.getElementById('hint-text').textContent = 'Modo App · Offline pronto';
+  } else if (isIOS && !dismissed) {
+    setTimeout(() => document.getElementById('ios-banner').classList.add('show'), 1200);
+  }
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (!dismissed) setTimeout(() => document.getElementById('android-banner').classList.add('show'), 1200);
+  });
+  document.getElementById('btn-install').addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    document.getElementById('android-banner').classList.remove('show');
+  });
+  function dismissBanner(type) {
+    document.getElementById(type + '-banner').classList.remove('show');
+    localStorage.setItem('pwa_dismissed', '1');
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
